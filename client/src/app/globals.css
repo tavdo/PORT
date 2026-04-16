@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: #0369a1;
+  --color-secondary: #0ea5e9;
+  --color-navy: #0f172a;
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --foreground: #f8fafc;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+.glass-card {
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-xl rounded-2xl;
+}
+
+.maritime-gradient {
+  background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%);
+}
+
+.maritime-gradient-blue {
+  background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%);
+}

@@ -1,0 +1,16 @@
+{
+  "harbourClearance": [
+    { "fromGt": 100, "toGt": 1000, "gel": 440 },
+    { "fromGt": 1001, "toGt": 5000, "gel": 792 },
+    { "fromGt": 5001, "toGt": 15000, "gel": 1276 },
+    { "fromGt": 15001, "toGt": 999999, "gel": 1634 }
+  ],
+  "anchorageDaily": [
+    { "fromGt": 500, "toGt": 1000, "gel": 265 },
+    { "fromGt": 1001, "toGt": 5000, "gel": 365 },
+    { "fromGt": 5001, "toGt": 15000, "gel": 715 },
+    { "fromGt": 15001, "toGt": 999999, "gel": 945 }
+  ],
+  "georep": { "gel": 350 },
+  "reinspection": { "gel": 1855 }
+}
