@@ -1,6 +1,22 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+/**
+ * Resolve the API base URL.
+ * - In dev: fall back to http://localhost:3000/api so `npm run dev` Just Works.
+ * - In prod builds: require NEXT_PUBLIC_API_URL, otherwise point at the
+ *   same origin under /api so deployment mistakes surface loudly (the
+ *   browser's dev tools will show a clear 404 instead of silently
+ *   failing on a non-existent localhost call).
+ */
+function resolveApiBaseUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, '');
+  if (process.env.NODE_ENV !== 'production') return 'http://localhost:3000/api';
+  if (typeof window !== 'undefined') return `${window.location.origin}/api`;
+  return '/api';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const TOKEN_KEY = 'port_auth_token';
 

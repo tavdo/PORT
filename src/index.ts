@@ -6,8 +6,9 @@ import { initDatabase } from "./db/database";
 try {
   initDatabase();
   const app = createApp();
-  app.listen(env.port, () => {
-    logger.info("Port Disbursement API listening", { port: env.port, env: env.nodeEnv });
+  const host = process.env.HOST?.trim() || "0.0.0.0";
+  app.listen(env.port, host, () => {
+    logger.info("Port Disbursement API listening", { host, port: env.port, env: env.nodeEnv });
   });
 } catch (err) {
   logger.error("Server bootstrap failed", { error: err instanceof Error ? err.message : String(err) });

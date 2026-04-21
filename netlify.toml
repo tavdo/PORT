@@ -1,0 +1,14 @@
+[build]
+  base = "client"
+  command = "npm ci && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--no-audit --no-fund --prefer-offline"
+  # Stop Netlify's secret scanner from flagging backend-only env vars that
+  # would never end up in the client bundle anyway.
+  SECRETS_SCAN_OMIT_KEYS = "SHIP_API_KEY,JWT_SECRET,ADMIN_PASSWORD,ADMIN_EMAIL,DATABASE_PATH"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

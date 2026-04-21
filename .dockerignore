@@ -1,0 +1,17 @@
+node_modules
+dist
+.next
+client
+data
+*.log
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+scripts
+README*.md
+tsconfig.tsbuildinfo
