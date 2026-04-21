@@ -1,5 +1,6 @@
 import "dotenv/config";
 import path from "path";
+import fs from "fs";
 import { logger } from "../utils/logger";
 import type { PricingConfig } from "../types";
 
@@ -19,6 +20,27 @@ function str(key: string, fallback: string): string {
   return v !== undefined && v !== "" ? v : fallback;
 }
 
+function resolveDatabaseUrl(): string {
+  const explicit =
+    process.env.DATABASE_URL?.trim() || process.env.TURSO_DATABASE_URL?.trim();
+  if (explicit) return explicit;
+
+  const legacyPath = process.env.DATABASE_PATH?.trim();
+  if (legacyPath) {
+    const abs = path.isAbsolute(legacyPath) ? legacyPath : path.resolve(legacyPath);
+    return `file:${abs.replace(/\\/g, "/")}`;
+  }
+
+  const defaultDir = path.join(process.cwd(), "data");
+  try {
+    fs.mkdirSync(defaultDir, { recursive: true });
+  } catch {
+    /* ignore */
+  }
+  const defaultFile = path.join(defaultDir, "port.db");
+  return `file:${defaultFile.replace(/\\/g, "/")}`;
+}
+
 export const env = {
   port: num("PORT", 3000),
   nodeEnv: str("NODE_ENV", "development"),
@@ -32,7 +54,13 @@ export const env = {
   shipApiKey: process.env.SHIP_API_KEY?.trim() || "",
   shipApiTimeoutMs: num("SHIP_API_TIMEOUT_MS", 8000),
   shipCacheTtlSeconds: num("SHIP_CACHE_TTL_SECONDS", 3600),
-  databasePath: process.env.DATABASE_PATH?.trim() || path.join(process.cwd(), "data", "port.db"),
+  /**
+   * libSQL connection URL. Supports:
+   *   - libsql://your-db.turso.io           (remote Turso, requires DATABASE_AUTH_TOKEN)
+   *   - file:/absolute/path/to/port.db       (local file; used as a dev/default fallback)
+   */
+  databaseUrl: resolveDatabaseUrl(),
+  databaseAuthToken: process.env.DATABASE_AUTH_TOKEN?.trim() || process.env.TURSO_AUTH_TOKEN?.trim() || "",
   jwtSecret: process.env.JWT_SECRET?.trim() || "dev-only-change-me-in-production",
   jwtExpiresIn: str("JWT_EXPIRES_IN", "7d"),
   /** First-run admin seed (only when no admin exists) */

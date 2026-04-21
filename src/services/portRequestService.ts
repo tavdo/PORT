@@ -82,7 +82,10 @@ function buildShipBlock(ship: ShipData, input: TankerCalcInput): CalculateRespon
   };
 }
 
-export async function createPortRequest(userId: number, input: CreatePortRequestInput): Promise<{
+export async function createPortRequest(
+  userId: number,
+  input: CreatePortRequestInput,
+): Promise<{
   id: number;
   payload: CalculateResponse;
   status: PortRequestStatus;
@@ -111,14 +114,12 @@ export async function createPortRequest(userId: number, input: CreatePortRequest
     tanker: tankerInput,
     lineOverrides: input.lineOverrides,
   };
-  const r = db
-    .prepare(
-      `INSERT INTO port_requests (
-        user_id, imo, vessel_data, eta, cargo_notes, cargo_weight_tn,
-        hours, usd_to_gel, calc_params_json, status, estimated_total_usd, charges_snapshot_json, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, datetime('now'))`,
-    )
-    .run(
+  const r = await db.execute({
+    sql: `INSERT INTO port_requests (
+            user_id, imo, vessel_data, eta, cargo_notes, cargo_weight_tn,
+            hours, usd_to_gel, calc_params_json, status, estimated_total_usd, charges_snapshot_json, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, datetime('now'))`,
+    args: [
       userId,
       imo,
       JSON.stringify(ship),
@@ -130,92 +131,104 @@ export async function createPortRequest(userId: number, input: CreatePortRequest
       JSON.stringify(calcParams),
       payload.totalUSD,
       JSON.stringify(payload.charges),
-    );
+    ],
+  });
 
+  const insertedId = r.lastInsertRowid;
+  if (insertedId === undefined) {
+    throw new AppError("Failed to create port request", 500);
+  }
   return {
-    id: Number(r.lastInsertRowid),
+    id: Number(insertedId),
     payload,
     status: "pending",
   };
 }
 
-export function listRequestsForUser(userId: number): unknown[] {
+export async function listRequestsForUser(userId: number): Promise<Record<string, unknown>[]> {
   const db = getDb();
-  return db
-    .prepare(
-      `SELECT id, imo, vessel_data, eta, cargo_notes, cargo_weight_tn, hours, usd_to_gel,
-              status, estimated_total_usd, approved_total_usd, created_at, updated_at
-       FROM port_requests WHERE user_id = ? ORDER BY id DESC`,
-    )
-    .all(userId);
+  const rs = await db.execute({
+    sql: `SELECT id, imo, vessel_data, eta, cargo_notes, cargo_weight_tn, hours, usd_to_gel,
+                 status, estimated_total_usd, approved_total_usd, created_at, updated_at
+          FROM port_requests WHERE user_id = ? ORDER BY id DESC`,
+    args: [userId],
+  });
+  return rs.rows as unknown as Record<string, unknown>[];
 }
 
-export function listAllRequests(): unknown[] {
+export async function listAllRequests(): Promise<Record<string, unknown>[]> {
   const db = getDb();
-  return db
-    .prepare(
-      `SELECT r.id, r.user_id as userId, u.email as userEmail, r.imo, r.vessel_data, r.eta, r.cargo_notes,
-              r.cargo_weight_tn as cargoWeightTn, r.hours, r.usd_to_gel as usdToGel,
-              r.status, r.estimated_total_usd as estimatedTotalUsd, r.approved_total_usd as approvedTotalUsd,
-              r.charges_snapshot_json as chargesSnapshotJson, r.created_at as createdAt, r.updated_at as updatedAt
-       FROM port_requests r JOIN users u ON u.id = r.user_id ORDER BY r.id DESC`,
-    )
-    .all();
+  const rs = await db.execute(
+    `SELECT r.id, r.user_id as userId, u.email as userEmail, r.imo, r.vessel_data, r.eta, r.cargo_notes,
+            r.cargo_weight_tn as cargoWeightTn, r.hours, r.usd_to_gel as usdToGel,
+            r.status, r.estimated_total_usd as estimatedTotalUsd, r.approved_total_usd as approvedTotalUsd,
+            r.charges_snapshot_json as chargesSnapshotJson, r.created_at as createdAt, r.updated_at as updatedAt
+     FROM port_requests r JOIN users u ON u.id = r.user_id ORDER BY r.id DESC`,
+  );
+  return rs.rows as unknown as Record<string, unknown>[];
 }
 
-export function getRequestById(id: number): Record<string, unknown> | null {
+export async function getRequestById(id: number): Promise<Record<string, unknown> | null> {
   const db = getDb();
-  const row = db
-    .prepare(
-      `SELECT r.id, r.user_id as userId, u.email as userEmail, r.imo, r.vessel_data, r.eta, r.cargo_notes,
-              r.cargo_weight_tn as cargoWeightTn, r.hours, r.usd_to_gel as usdToGel,
-              r.calc_params_json as calcParamsJson, r.status, r.estimated_total_usd as estimatedTotalUsd,
-              r.approved_total_usd as approvedTotalUsd, r.charges_snapshot_json as chargesSnapshotJson,
-              r.created_at as createdAt, r.updated_at as updatedAt
-       FROM port_requests r JOIN users u ON u.id = r.user_id WHERE r.id = ?`,
-    )
-    .get(id) as Record<string, unknown> | undefined;
+  const rs = await db.execute({
+    sql: `SELECT r.id, r.user_id as userId, u.email as userEmail, r.imo, r.vessel_data, r.eta, r.cargo_notes,
+                 r.cargo_weight_tn as cargoWeightTn, r.hours, r.usd_to_gel as usdToGel,
+                 r.calc_params_json as calcParamsJson, r.status, r.estimated_total_usd as estimatedTotalUsd,
+                 r.approved_total_usd as approvedTotalUsd, r.charges_snapshot_json as chargesSnapshotJson,
+                 r.created_at as createdAt, r.updated_at as updatedAt
+          FROM port_requests r JOIN users u ON u.id = r.user_id WHERE r.id = ?`,
+    args: [id],
+  });
+  const row = rs.rows[0] as unknown as Record<string, unknown> | undefined;
   return row ?? null;
 }
 
-export function assertRequestAccess(requestId: number, userId: number, role: "captain" | "admin"): Record<string, unknown> {
-  const row = getRequestById(requestId);
+export async function assertRequestAccess(
+  requestId: number,
+  userId: number,
+  role: "captain" | "admin",
+): Promise<Record<string, unknown>> {
+  const row = await getRequestById(requestId);
   if (!row) throw new AppError("Request not found", 404);
   if (role === "admin") return row;
   if (Number(row.userId) !== userId) throw new AppError("Forbidden", 403);
   return row;
 }
 
-export function setRequestStatus(
+export async function setRequestStatus(
   requestId: number,
   action: "approve" | "reject",
   approvedTotalUsd: number | undefined,
-  actorId: number,
-): { estimatedTotalUsd: number; approvedTotalUsd: number | null } {
+  _actorId: number,
+): Promise<{ estimatedTotalUsd: number; approvedTotalUsd: number | null }> {
   const db = getDb();
-  const row = db
-    .prepare(
-      "SELECT id, status, estimated_total_usd FROM port_requests WHERE id = ?",
-    )
-    .get(requestId) as { id: number; status: PortRequestStatus; estimated_total_usd: number } | undefined;
+  const rs = await db.execute({
+    sql: "SELECT id, status, estimated_total_usd FROM port_requests WHERE id = ?",
+    args: [requestId],
+  });
+  const row = rs.rows[0] as unknown as
+    | { id: number; status: PortRequestStatus; estimated_total_usd: number }
+    | undefined;
   if (!row) throw new AppError("Request not found", 404);
   if (row.status !== "pending") throw new AppError("Request is no longer pending", 400);
 
   if (action === "reject") {
-    db.prepare(
-      `UPDATE port_requests SET status = 'rejected', updated_at = datetime('now') WHERE id = ?`,
-    ).run(requestId);
-    return { estimatedTotalUsd: row.estimated_total_usd, approvedTotalUsd: null };
+    await db.execute({
+      sql: `UPDATE port_requests SET status = 'rejected', updated_at = datetime('now') WHERE id = ?`,
+      args: [requestId],
+    });
+    return { estimatedTotalUsd: Number(row.estimated_total_usd), approvedTotalUsd: null };
   }
 
   const finalUsd =
     approvedTotalUsd !== undefined && Number.isFinite(approvedTotalUsd)
       ? round2(approvedTotalUsd)
-      : round2(row.estimated_total_usd);
+      : round2(Number(row.estimated_total_usd));
 
-  db.prepare(
-    `UPDATE port_requests SET status = 'approved', approved_total_usd = ?, updated_at = datetime('now') WHERE id = ?`,
-  ).run(finalUsd, requestId);
+  await db.execute({
+    sql: `UPDATE port_requests SET status = 'approved', approved_total_usd = ?, updated_at = datetime('now') WHERE id = ?`,
+    args: [finalUsd, requestId],
+  });
 
-  return { estimatedTotalUsd: row.estimated_total_usd, approvedTotalUsd: finalUsd };
+  return { estimatedTotalUsd: Number(row.estimated_total_usd), approvedTotalUsd: finalUsd };
 }

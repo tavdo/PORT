@@ -5,7 +5,7 @@ export async function postRegister(req: Request, res: Response, next: NextFuncti
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const password = typeof req.body?.password === "string" ? req.body.password : "";
-    const user = registerUser(email, password, "captain");
+    const user = await registerUser(email, password, "captain");
     res.status(201).json({ id: user.id, email: user.email, role: user.role });
   } catch (err) {
     next(err);
@@ -16,18 +16,22 @@ export async function postLogin(req: Request, res: Response, next: NextFunction)
   try {
     const email = typeof req.body?.email === "string" ? req.body.email : "";
     const password = typeof req.body?.password === "string" ? req.body.password : "";
-    const { user, token } = loginUser(email, password);
+    const { user, token } = await loginUser(email, password);
     res.json({ token, user });
   } catch (err) {
     next(err);
   }
 }
 
-export function getMe(req: Request, res: Response): void {
-  const u = getUserById(req.userId!);
-  if (!u) {
-    res.status(404).json({ error: "User not found" });
-    return;
+export async function getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const u = await getUserById(req.userId!);
+    if (!u) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.json({ id: u.id, email: u.email, role: u.role });
+  } catch (err) {
+    next(err);
   }
-  res.json({ id: u.id, email: u.email, role: u.role });
 }

@@ -29,9 +29,9 @@ export async function postCreateRequest(req: Request, res: Response, next: NextF
   }
 }
 
-export function getMyRequests(req: Request, res: Response, next: NextFunction): void {
+export async function getMyRequests(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const rows = listRequestsForUser(req.userId!) as Array<Record<string, unknown>>;
+    const rows = await listRequestsForUser(req.userId!);
     const out = rows.map((r) => ({
       id: r.id,
       imo: r.imo,
@@ -53,14 +53,14 @@ export function getMyRequests(req: Request, res: Response, next: NextFunction): 
   }
 }
 
-export function getOneRequest(req: Request, res: Response, next: NextFunction): void {
+export async function getOneRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    const row = assertRequestAccess(id, req.userId!, req.userRole!) as Record<string, unknown>;
+    const row = await assertRequestAccess(id, req.userId!, req.userRole!);
     const vesselData =
       typeof row.vessel_data === "string" ? parseVessel(row.vessel_data) : null;
     let charges: unknown = null;

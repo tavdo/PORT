@@ -2,24 +2,18 @@ services:
   - type: web
     name: port-disbursement-api
     runtime: node
-    plan: starter
+    plan: free
     region: frankfurt
     rootDir: .
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
-    disk:
-      name: port-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: HOST
         value: 0.0.0.0
-      - key: DATABASE_PATH
-        value: /var/data/port.db
       - key: CORS_ORIGINS
         value: https://inquisitive-sprite-6e742f.netlify.app
       - key: JWT_SECRET
@@ -34,7 +28,11 @@ services:
         value: "3600"
       - key: SHIP_API_TIMEOUT_MS
         value: "8000"
-      # Secrets you must set in the Render dashboard (sync: false hides them from this file):
+      # Secrets: set these in the Render dashboard (sync: false hides them from git):
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: SHIP_API_KEY
         sync: false
       - key: ADMIN_EMAIL

@@ -7,9 +7,9 @@ function parseVessel(json: string): ShipData {
   return JSON.parse(json) as ShipData;
 }
 
-export function getAdminRequests(_req: Request, res: Response, next: NextFunction): void {
+export async function getAdminRequests(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const rows = listAllRequests() as Array<Record<string, unknown>>;
+    const rows = await listAllRequests();
     const out = rows.map((r) => ({
       id: r.id,
       userId: r.userId,
@@ -25,7 +25,7 @@ export function getAdminRequests(_req: Request, res: Response, next: NextFunctio
       estimatedTotalUsd: r.estimatedTotalUsd,
       approvedTotalUsd: r.approvedTotalUsd,
       charges:
-        typeof r.chargesSnapshotJson === "string" ? JSON.parse(r.chargesSnapshotJson as string) : null,
+        typeof r.chargesSnapshotJson === "string" ? JSON.parse(r.chargesSnapshotJson) : null,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     }));
@@ -35,7 +35,7 @@ export function getAdminRequests(_req: Request, res: Response, next: NextFunctio
   }
 }
 
-export function patchAdminRequest(req: Request, res: Response, next: NextFunction): void {
+export async function patchAdminRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
@@ -53,7 +53,7 @@ export function patchAdminRequest(req: Request, res: Response, next: NextFunctio
         ? undefined
         : Number(approvedRaw);
 
-    const result = setRequestStatus(id, action, approvedTotalUsd, req.userId!);
+    const result = await setRequestStatus(id, action, approvedTotalUsd, req.userId!);
 
     logAudit(req.userId!, action === "approve" ? "request_approved" : "request_rejected", "port_request", id, {
       estimatedTotalUsd: result.estimatedTotalUsd,
