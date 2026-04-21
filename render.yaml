@@ -3,7 +3,7 @@ services:
     name: port-disbursement-api
     runtime: node
     plan: free
-    region: frankfurt
+    region: singapore
     rootDir: .
     buildCommand: npm ci && npm run build
     startCommand: npm start

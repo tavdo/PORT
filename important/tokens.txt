@@ -1,0 +1,8 @@
+eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzY3ODQwNTIsImlkIjoiMDE5ZGIwOTAtMWMwMS03ZDdkLTlhNjktMmJiMzQ4ZjYxMzIyIiwicmlkIjoiY2NhZDkwMmYtYTA3MC00M2NiLTk4NDAtNDQ4ODRlNDIzYTI2In0.iqWSgKgdRvm8dnPiKC5liU1_DPb06tpE7by9rPwrD-BREyHbpvwhaeKsxPI8mANVgqpETLt9bNFGUyVXpRpeCw
+
+
+
+
+libsql://port-tavdo.aws-ap-northeast-1.turso.io
+
+
